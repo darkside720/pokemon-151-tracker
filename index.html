@@ -2,198 +2,210 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Pokémon 151 Collection Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      font-family: sans-serif;
-      background: url('images/background.jpg') center/cover no-repeat fixed;
-      margin: 0; padding: 1rem;
-      color: #333; backdrop-filter: brightness(0.8);
+      font-family: 'Segoe UI', sans-serif;
+      background: url('background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      margin: 0;
+      padding: 2rem;
+      color: #fff;
     }
-    h1, h2 { text-align: center; color: #fff; text-shadow: 2px 2px #000; }
-    .controls { text-align: center; margin-bottom: 1rem; }
-    #filter { padding: 0.5rem; width: 200px; font-size: 1rem; }
+
+    h1 {
+      text-align: center;
+      text-shadow: 2px 2px 6px #000;
+    }
+
+    h2 {
+      margin-top: 3rem;
+      color: #ffe100;
+      text-shadow: 2px 2px 6px #000;
+    }
+
     .pokemon-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 1rem; padding: 0 1rem;
+      gap: 1rem;
+      margin-top: 1rem;
     }
+
     .pokemon-card {
-      background: rgba(255,255,255,0.9);
+      background: rgba(255, 255, 255, 0.9);
       border-radius: 12px;
       padding: 1rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
       text-align: center;
-      transition: transform 0.2s, filter 0.3s;
+      color: #000;
     }
-    .pokemon-card.collected {
-      filter: grayscale(80%) contrast(0.7);
-    }
-    .pokemon-card:hover { transform: scale(1.03); }
+
     .pokemon-card img {
-      width: 100%; max-height: 200px; object-fit: contain;
+      width: 100px;
+      height: auto;
       border-radius: 8px;
     }
-    .pokemon-card select { margin-top: 0.5rem; }
-    .meta { font-size: 0.8rem; color: #555; margin-top: 0.5rem; }
-    #downloadBtn {
-      padding: 0.7rem 1.5rem;
-      margin-left: 1rem;
-      font-size: 1rem;
-      cursor: pointer;
+
+    .pokemon-card input[type="checkbox"] {
+      margin-top: 0.5rem;
+    }
+
+    .version-select {
+      margin-top: 0.5rem;
+    }
+
+    .chase-section {
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 1rem;
+      border-radius: 10px;
+    }
+
+    .chase-section h2 {
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
+
   <h1>Pokémon 151 Collection Tracker</h1>
 
-  <div class="section">
-    <h2>🔥 Top 20 Chase Cards</h2>
-    <div class="pokemon-grid" id="chaseCards"></div>
+  <div class="chase-section">
+    <h2>🔥 Top 20 TCG Chase Cards</h2>
+    <div class="pokemon-grid" id="chaseGrid"></div>
   </div>
 
-  <div class="controls">
-    <input type="text" id="filter" placeholder="🔍 Filter by name…" />
-    <button id="downloadBtn">Download Checklist</button>
-  </div>
-
-  <div class="section">
-    <h2>All Gen 1 Pokémon</h2>
-    <div class="pokemon-grid" id="pokemonGrid"></div>
-  </div>
+  <h2>🗃 Full National Dex</h2>
+  <div class="pokemon-grid" id="pokemonGrid"></div>
 
   <script>
-    const placeholder = "https://via.placeholder.com/150?text=Missing";
-    const chaseList = ["charizard","blastoise","venusaur","pikachu","mewtwo","mew",
-      "gyarados","zapdos","moltres","articuno","dragonite","alakazam",
-      "snorlax","gengar","machamp","raichu","nidoking","clefairy",
-      "hitmonchan","chansey"];
+    const pokemonGrid = document.getElementById('pokemonGrid');
+    const chaseGrid = document.getElementById('chaseGrid');
+    const placeholderImage = "https://via.placeholder.com/100?text=Missing";
 
-    const chaseContainer = document.getElementById("chaseCards");
-    const pokemonContainer = document.getElementById("pokemonGrid");
+    const chaseCardIDs = [
+      "sv2a-205", "sv2a-206", "sv2a-207", "sv2a-208", "sv2a-209",
+      "sv2a-210", "sv2a-211", "sv2a-212", "sv2a-213", "sv2a-214",
+      "sv2a-215", "sv2a-216", "sv2a-217", "sv2a-218", "sv2a-219",
+      "sv2a-220", "sv2a-221", "sv2a-222", "sv2a-223", "sv2a-224"
+    ];
 
-    document.getElementById("filter").addEventListener("input", e => {
-      const q = e.target.value.toLowerCase();
-      document.querySelectorAll('.pokemon-card').forEach(card => {
-        const name = card.querySelector('h3').innerText.toLowerCase();
-        card.style.display = name.includes(q) ? '' : 'none';
-      });
-    });
-
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      const items = [];
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        items.push({
-          id: cb.id,
-          collected: cb.checked
-        });
-      });
-      const blob = new Blob([JSON.stringify(items, null, 2)], {
-        type: 'application/json'
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pokemon-checklist.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    function changeImage(id) {
-      const sel = document.getElementById(`select-${id}`);
-      const img = document.getElementById(`img-${id}`);
-      const card = img.closest('.pokemon-card');
-      img.src = card.dataset[sel.value] || placeholder;
-    }
-
-    function toggleCollected(id) {
-      const cb = document.getElementById(`pokemon-${id}`);
-      const card = cb.closest('.pokemon-card');
-      card.classList.toggle('collected', cb.checked);
-      localStorage.setItem(cb.id, cb.checked);
-    }
-
-    function restoreState() {
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        const val = localStorage.getItem(cb.id) === "true";
-        cb.checked = val;
-        toggleCollected(cb.id.split('-')[1]);
-      });
-    }
-
-    async function fetchPokemon(id) {
-      const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-      return await r.json();
-    }
-
-    async function fetchTCG(name) {
+    async function fetchCardImage(cardId) {
       try {
-        const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${name}" supertype:"Pokémon"&orderBy=-set.releaseDate`);
-        const data = await r.json();
-        const card = data.data?.[0];
+        const res = await fetch(`https://api.pokemontcg.io/v2/cards/${cardId}`);
+        const data = await res.json();
         return {
-          image: card?.images?.large || placeholder,
-          set: card?.set?.name || 'Unknown',
-          year: card?.set?.releaseDate?.split('-')[0] || '?'
+          name: data.data.name,
+          image: data.data.images.large,
+          id: data.data.id
         };
-      } catch {
-        return { image: placeholder, set: 'Unknown', year: '?' };
+      } catch (e) {
+        console.error("Card error:", cardId, e);
+        return null;
       }
     }
 
-    async function buildCard(pokeData, tcgInfo, index, container) {
-      const name = pokeData.name.charAt(0).toUpperCase() + pokeData.name.slice(1);
-      const sprite = pokeData.sprites.front_default || placeholder;
-      const artwork = `https://img.pokemondb.net/artwork/large/${pokeData.name}.jpg`;
-      const imgUrl = tcgInfo.image;
-
-      const card = document.createElement('div');
-      card.className = 'pokemon-card';
-      card.dataset.sprite = sprite;
-      card.dataset.artwork = artwork;
-      card.dataset.tcg = imgUrl;
-
-      card.innerHTML = `
-        <h3>#${String(index).padStart(3,'0')} ${name}</h3>
-        <img src="${imgUrl}" id="img-${index}" alt="${name}" />
-        <select id="select-${index}" onchange="changeImage(${index})">
-          <option value="tcg">TCG</option>
-          <option value="artwork">Artwork</option>
-          <option value="sprite">Sprite</option>
-        </select>
-        <div class="meta">${tcgInfo.set} (${tcgInfo.year})</div>
-        <div><label><input type="checkbox" id="pokemon-${index}" onchange="toggleCollected(${index})"/> Collected</label></div>
-      `;
-
-      container.appendChild(card);
+    async function loadChaseCards() {
+      for (const id of chaseCardIDs) {
+        const cardData = await fetchCardImage(id);
+        if (!cardData) continue;
+        const card = document.createElement("div");
+        card.className = "pokemon-card";
+        card.innerHTML = `
+          <h3>${cardData.name}</h3>
+          <img src="${cardData.image}" alt="${cardData.name}" />
+        `;
+        chaseGrid.appendChild(card);
+      }
     }
 
-    async function loadChase() {
+    async function loadPokemon() {
       for (let i = 1; i <= 151; i++) {
-        const poke = await fetchPokemon(i);
-        if (chaseList.includes(poke.name)) {
-          const tcg = await fetchTCG(poke.name);
-          await buildCard(poke, tcg, i, chaseContainer);
+        try {
+          const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
+          const data = await res.json();
+          const name = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+          const spriteUrl = data.sprites.front_default || placeholderImage;
+          const artworkUrl = `https://img.pokemondb.net/artwork/large/${data.name}.jpg`;
+          let tcgUrl = "";
+
+          try {
+            const tcgRes = await fetch(`https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:${i}`);
+            const tcgData = await tcgRes.json();
+            tcgUrl = tcgData.data?.[0]?.images?.large || "";
+          } catch (err) {
+            console.warn(`TCG fetch error for #${i}:`, err);
+          }
+
+          const imageOptions = {
+            sprite: spriteUrl,
+            artwork: artworkUrl,
+            tcg: tcgUrl || artworkUrl
+          };
+
+          const card = document.createElement('div');
+          card.className = 'pokemon-card';
+          card.innerHTML = `
+            <h3>#${String(i).padStart(3, '0')} ${name}</h3>
+            <img src="${imageOptions.tcg}" id="img-${i}" alt="${name}" />
+            <div class="version-select">
+              <label for="select-${i}">Version:</label>
+              <select id="select-${i}" onchange="changeImage(${i})">
+                <option value="tcg">TCG</option>
+                <option value="artwork">Artwork</option>
+                <option value="sprite">Sprite</option>
+              </select>
+            </div>
+            <div>
+              <label>
+                <input type="checkbox" id="pokemon-${i}" onchange="toggleCollected(${i})">
+                Collected
+              </label>
+            </div>
+          `;
+
+          // Store all image URLs
+          card.dataset.sprite = imageOptions.sprite;
+          card.dataset.artwork = imageOptions.artwork;
+          card.dataset.tcg = imageOptions.tcg;
+
+          pokemonGrid.appendChild(card);
+        } catch (err) {
+          console.error(`Error loading Pokémon #${i}:`, err);
+        }
+      }
+
+      restoreState();
+    }
+
+    function toggleCollected(id) {
+      const key = `pokemon-${id}`;
+      const checked = document.getElementById(key).checked;
+      localStorage.setItem(key, checked);
+    }
+
+    function restoreState() {
+      for (let i = 1; i <= 151; i++) {
+        const key = `pokemon-${i}`;
+        const stored = localStorage.getItem(key);
+        if (stored === 'true') {
+          const checkbox = document.getElementById(key);
+          if (checkbox) checkbox.checked = true;
         }
       }
     }
 
-    async function loadAll() {
-      const list = [];
-      for (let i = 1; i <= 151; i++) list.push(fetchPokemon(i).then(data => ({id:i, data})));
-      const results = await Promise.all(list);
-      results.sort((a, b) => a.data.name.localeCompare(b.data.name));
-      for (const item of results) {
-        const tcg = await fetchTCG(item.data.name);
-        await buildCard(item.data, tcg, item.id, pokemonContainer);
-      }
-      restoreState();
+    function changeImage(id) {
+      const select = document.getElementById(`select-${id}`);
+      const img = document.getElementById(`img-${id}`);
+      const card = img.closest('.pokemon-card');
+      const version = select.value;
+      img.src = card.dataset[version] || placeholderImage;
     }
 
-    // Run
-    loadChase();
-    loadAll();
+    // Load both sections
+    loadChaseCards();
+    loadPokemon();
   </script>
 </body>
 </html>
