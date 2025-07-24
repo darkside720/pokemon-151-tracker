@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Pokémon 151 Collection Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       font-family: sans-serif;
@@ -34,9 +34,6 @@
     .pokemon-card input[type="checkbox"] {
       margin-top: 0.5rem;
     }
-    .version-select {
-      margin-top: 0.5rem;
-    }
   </style>
 </head>
 <body>
@@ -45,68 +42,43 @@
 
   <script>
     const grid = document.getElementById('pokemonGrid');
-    const placeholderImage = "https://via.placeholder.com/100?text=Missing";
 
-    async function loadPokemon() {
-      for (let i = 1; i <= 151; i++) {
-        try {
-          const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
-          const data = await res.json();
+    const pokemonList = [
+      "bulbasaur","ivysaur","venusaur","charmander","charmeleon","charizard","squirtle","wartortle","blastoise","caterpie",
+      "metapod","butterfree","weedle","kakuna","beedrill","pidgey","pidgeotto","pidgeot","rattata","raticate",
+      "spearow","fearow","ekans","arbok","pikachu","raichu","sandshrew","sandslash","nidoran-f","nidorina",
+      "nidoqueen","nidoran-m","nidorino","nidoking","clefairy","clefable","vulpix","ninetales","jigglypuff","wigglytuff",
+      "zubat","golbat","oddish","gloom","vileplume","paras","parasect","venonat","venomoth","diglett",
+      "dugtrio","meowth","persian","psyduck","golduck","mankey","primeape","growlithe","arcanine","poliwag",
+      "poliwhirl","poliwrath","abra","kadabra","alakazam","machop","machoke","machamp","bellsprout","weepinbell",
+      "victreebel","tentacool","tentacruel","geodude","graveler","golem","ponyta","rapidash","slowpoke","slowbro",
+      "magnemite","magneton","farfetchd","doduo","dodrio","seel","dewgong","grimer","muk","shellder",
+      "cloyster","gastly","haunter","gengar","onix","drowzee","hypno","krabby","kingler","voltorb",
+      "electrode","exeggcute","exeggutor","cubone","marowak","hitmonlee","hitmonchan","lickitung","koffing","weezing",
+      "rhyhorn","rhydon","chansey","tangela","kangaskhan","horsea","seadra","goldeen","seaking","staryu",
+      "starmie","mr-mime","scyther","jynx","electabuzz","magmar","pinsir","tauros","magikarp","gyarados",
+      "lapras","ditto","eevee","vaporeon","jolteon","flareon","porygon","omanyte","omastar","kabuto",
+      "kabutops","aerodactyl","snorlax","articuno","zapdos","moltres","dratini","dragonair","dragonite","mewtwo",
+      "mew"
+    ];
 
-          const name = data.name.charAt(0).toUpperCase() + data.name.slice(1);
-          const spriteUrl = data.sprites.front_default || placeholderImage;
-          const artworkUrl = `https://img.pokemondb.net/artwork/large/${data.name}.jpg`;
-          let tcgUrl = '';
-
-          try {
-            const tcgRes = await fetch(`https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:${i}`, {
-              headers: { 'X-Api-Key': 'demo-key' } // Replace with real key if needed
-            });
-            const tcgData = await tcgRes.json();
-            tcgUrl = tcgData.data?.[0]?.images?.large || '';
-          } catch (err) {
-            console.warn(`TCG fetch error for #${i}:`, err);
-          }
-
-          const imageOptions = {
-            sprite: spriteUrl,
-            artwork: artworkUrl,
-            tcg: tcgUrl || artworkUrl
-          };
-
-          const card = document.createElement('div');
-          card.className = 'pokemon-card';
-          card.innerHTML = `
-            <h3>#${String(i).padStart(3, '0')} ${name}</h3>
-            <img src="${imageOptions.tcg}" id="img-${i}" alt="${name}" />
-            <div class="version-select">
-              <label for="select-${i}">Version:</label>
-              <select id="select-${i}" onchange="changeImage(${i})">
-                <option value="tcg">TCG</option>
-                <option value="artwork">Artwork</option>
-                <option value="sprite">Sprite</option>
-              </select>
-            </div>
-            <div>
-              <label>
-                <input type="checkbox" id="pokemon-${i}" onchange="toggleCollected(${i})">
-                Collected
-              </label>
-            </div>
-          `;
-
-          // Save image URLs for switching
-          card.dataset.sprite = imageOptions.sprite;
-          card.dataset.artwork = imageOptions.artwork;
-          card.dataset.tcg = imageOptions.tcg;
-
-          grid.appendChild(card);
-        } catch (error) {
-          console.error(`Error loading Pokémon #${i}:`, error);
-        }
-      }
-
-      restoreState();
+    function createCard(i, name) {
+      const paddedNum = String(i + 1).padStart(3, '0');
+      const displayName = name.charAt(0).toUpperCase() + name.slice(1).replace('-', ' ');
+      const imagePath = `pokemon_images/${paddedNum}-${name}.jpg`;
+      const card = document.createElement('div');
+      card.className = 'pokemon-card';
+      card.innerHTML = `
+        <h3>#${paddedNum} ${displayName}</h3>
+        <img src="${imagePath}" alt="${name}" onerror="this.src='https://via.placeholder.com/100?text=N/A'" />
+        <div>
+          <label>
+            <input type="checkbox" id="pokemon-${i+1}" onchange="toggleCollected(${i+1})">
+            Collected
+          </label>
+        </div>
+      `;
+      return card;
     }
 
     function toggleCollected(id) {
@@ -126,15 +98,15 @@
       }
     }
 
-    function changeImage(id) {
-      const select = document.getElementById(`select-${id}`);
-      const img = document.getElementById(`img-${id}`);
-      const card = img.closest('.pokemon-card');
-      const version = select.value;
-      img.src = card.dataset[version] || placeholderImage;
+    function loadLocalCards() {
+      pokemonList.forEach((name, i) => {
+        const card = createCard(i, name);
+        grid.appendChild(card);
+      });
+      restoreState();
     }
 
-    loadPokemon();
+    loadLocalCards();
   </script>
 </body>
 </html>
