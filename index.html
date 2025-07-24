@@ -1,23 +1,40 @@
+<!-- Save this as index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pokémon 151 Collection Tracker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pokémon 151 Tracker</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: url('images/background.jpg') center/cover no-repeat fixed;
-      margin: 0; padding: 1rem;
-      color: #333; backdrop-filter: brightness(0.8);
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: url('images/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: #333;
     }
-    h1, h2 { text-align: center; color: #fff; text-shadow: 2px 2px #000; }
-    .controls { text-align: center; margin-bottom: 1rem; }
-    #filter { padding: 0.5rem; width: 200px; font-size: 1rem; }
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      color: #222;
+      text-shadow: 1px 1px #fff;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+      gap: 1rem;
+    }
+    .controls input, .controls select, .controls button {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
     .pokemon-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 1rem; padding: 0 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
     }
     .pokemon-card {
       background: rgba(255,255,255,0.9);
@@ -25,175 +42,143 @@
       padding: 1rem;
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
       text-align: center;
-      transition: transform 0.2s, filter 0.3s;
+      transition: transform 0.2s ease;
     }
-    .pokemon-card.collected {
-      filter: grayscale(80%) contrast(0.7);
+    .pokemon-card:hover {
+      transform: scale(1.05);
     }
-    .pokemon-card:hover { transform: scale(1.03); }
     .pokemon-card img {
-      width: 100%; max-height: 200px; object-fit: contain;
+      width: 100px;
+      height: auto;
       border-radius: 8px;
     }
-    .pokemon-card select { margin-top: 0.5rem; }
-    .meta { font-size: 0.8rem; color: #555; margin-top: 0.5rem; }
-    #downloadBtn {
-      padding: 0.7rem 1.5rem;
-      margin-left: 1rem;
-      font-size: 1rem;
-      cursor: pointer;
+    .pokemon-card input[type="checkbox"] {
+      margin-top: 0.5rem;
+    }
+    .version-select {
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
   <h1>Pokémon 151 Collection Tracker</h1>
 
-  <div class="section">
-    <h2>🔥 Top 20 Chase Cards</h2>
-    <div class="pokemon-grid" id="chaseCards"></div>
-  </div>
-
   <div class="controls">
-    <input type="text" id="filter" placeholder="🔍 Filter by name…" />
-    <button id="downloadBtn">Download Checklist</button>
+    <input type="text" id="searchBox" placeholder="Search Pokémon..." oninput="filterCards()">
+    <select id="sortOption" onchange="sortCards()">
+      <option value="id">Sort by ID</option>
+      <option value="name">Sort by Name</option>
+    </select>
+    <button onclick="exportCollection()">Export Collection</button>
   </div>
 
-  <div class="section">
-    <h2>All Gen 1 Pokémon</h2>
-    <div class="pokemon-grid" id="pokemonGrid"></div>
-  </div>
+  <div class="pokemon-grid" id="pokemonGrid"></div>
 
   <script>
-    const placeholder = "https://via.placeholder.com/150?text=Missing";
-    const chaseList = ["charizard","blastoise","venusaur","pikachu","mewtwo","mew",
-      "gyarados","zapdos","moltres","articuno","dragonite","alakazam",
-      "snorlax","gengar","machamp","raichu","nidoking","clefairy",
-      "hitmonchan","chansey"];
+    const grid = document.getElementById('pokemonGrid');
+    const placeholderImage = "https://via.placeholder.com/100?text=Missing";
+    const collectionState = {};
 
-    const chaseContainer = document.getElementById("chaseCards");
-    const pokemonContainer = document.getElementById("pokemonGrid");
-
-    document.getElementById("filter").addEventListener("input", e => {
-      const q = e.target.value.toLowerCase();
-      document.querySelectorAll('.pokemon-card').forEach(card => {
-        const name = card.querySelector('h3').innerText.toLowerCase();
-        card.style.display = name.includes(q) ? '' : 'none';
-      });
-    });
-
-    document.getElementById("downloadBtn").addEventListener("click", () => {
-      const items = [];
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        items.push({
-          id: cb.id,
-          collected: cb.checked
-        });
-      });
-      const blob = new Blob([JSON.stringify(items, null, 2)], {
-        type: 'application/json'
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pokemon-checklist.json';
-      a.click();
-      URL.revokeObjectURL(url);
-    });
-
-    function changeImage(id) {
-      const sel = document.getElementById(`select-${id}`);
-      const img = document.getElementById(`img-${id}`);
-      const card = img.closest('.pokemon-card');
-      img.src = card.dataset[sel.value] || placeholder;
-    }
-
-    function toggleCollected(id) {
-      const cb = document.getElementById(`pokemon-${id}`);
-      const card = cb.closest('.pokemon-card');
-      card.classList.toggle('collected', cb.checked);
-      localStorage.setItem(cb.id, cb.checked);
-    }
-
-    function restoreState() {
-      document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        const val = localStorage.getItem(cb.id) === "true";
-        cb.checked = val;
-        toggleCollected(cb.id.split('-')[1]);
-      });
-    }
-
-    async function fetchPokemon(id) {
-      const r = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-      return await r.json();
-    }
-
-    async function fetchTCG(name) {
-      try {
-        const r = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:"${name}" supertype:"Pokémon"&orderBy=-set.releaseDate`);
-        const data = await r.json();
-        const card = data.data?.[0];
-        return {
-          image: card?.images?.large || placeholder,
-          set: card?.set?.name || 'Unknown',
-          year: card?.set?.releaseDate?.split('-')[0] || '?'
-        };
-      } catch {
-        return { image: placeholder, set: 'Unknown', year: '?' };
-      }
-    }
-
-    async function buildCard(pokeData, tcgInfo, index, container) {
-      const name = pokeData.name.charAt(0).toUpperCase() + pokeData.name.slice(1);
-      const sprite = pokeData.sprites.front_default || placeholder;
-      const artwork = `https://img.pokemondb.net/artwork/large/${pokeData.name}.jpg`;
-      const imgUrl = tcgInfo.image;
-
-      const card = document.createElement('div');
-      card.className = 'pokemon-card';
-      card.dataset.sprite = sprite;
-      card.dataset.artwork = artwork;
-      card.dataset.tcg = imgUrl;
-
-      card.innerHTML = `
-        <h3>#${String(index).padStart(3,'0')} ${name}</h3>
-        <img src="${imgUrl}" id="img-${index}" alt="${name}" />
-        <select id="select-${index}" onchange="changeImage(${index})">
-          <option value="tcg">TCG</option>
-          <option value="artwork">Artwork</option>
-          <option value="sprite">Sprite</option>
-        </select>
-        <div class="meta">${tcgInfo.set} (${tcgInfo.year})</div>
-        <div><label><input type="checkbox" id="pokemon-${index}" onchange="toggleCollected(${index})"/> Collected</label></div>
-      `;
-
-      container.appendChild(card);
-    }
-
-    async function loadChase() {
+    async function loadPokemon() {
       for (let i = 1; i <= 151; i++) {
-        const poke = await fetchPokemon(i);
-        if (chaseList.includes(poke.name)) {
-          const tcg = await fetchTCG(poke.name);
-          await buildCard(poke, tcg, i, chaseContainer);
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
+        const data = await res.json();
+        const name = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+        const sprite = data.sprites.front_default || placeholderImage;
+        const artwork = `https://img.pokemondb.net/artwork/large/${data.name}.jpg`;
+        
+        let tcg = "";
+        try {
+          const tcgRes = await fetch(`https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:${i}`);
+          const tcgData = await tcgRes.json();
+          tcg = tcgData.data?.[0]?.images?.large || artwork;
+        } catch (err) {
+          tcg = artwork;
         }
-      }
-    }
 
-    async function loadAll() {
-      const list = [];
-      for (let i = 1; i <= 151; i++) list.push(fetchPokemon(i).then(data => ({id:i, data})));
-      const results = await Promise.all(list);
-      results.sort((a, b) => a.data.name.localeCompare(b.data.name));
-      for (const item of results) {
-        const tcg = await fetchTCG(item.data.name);
-        await buildCard(item.data, tcg, item.id, pokemonContainer);
+        const card = document.createElement('div');
+        card.className = 'pokemon-card';
+        card.dataset.id = i;
+        card.dataset.name = name.toLowerCase();
+        card.innerHTML = `
+          <h3>#${String(i).padStart(3, '0')} ${name}</h3>
+          <img src="${tcg}" id="img-${i}" alt="${name}" />
+          <div class="version-select">
+            <select id="select-${i}" onchange="changeImage(${i}, '${sprite}', '${artwork}', '${tcg}')">
+              <option value="tcg">TCG</option>
+              <option value="artwork">Artwork</option>
+              <option value="sprite">Sprite</option>
+            </select>
+          </div>
+          <label>
+            <input type="checkbox" id="pokemon-${i}" onchange="toggleCollected(${i})">
+            Collected
+          </label>
+        `;
+        grid.appendChild(card);
       }
       restoreState();
     }
 
-    // Run
-    loadChase();
-    loadAll();
+    function toggleCollected(id) {
+      const key = `pokemon-${id}`;
+      const checked = document.getElementById(key).checked;
+      localStorage.setItem(key, checked);
+    }
+
+    function restoreState() {
+      for (let i = 1; i <= 151; i++) {
+        const key = `pokemon-${i}`;
+        const stored = localStorage.getItem(key);
+        if (stored === 'true') {
+          const checkbox = document.getElementById(key);
+          if (checkbox) checkbox.checked = true;
+        }
+      }
+    }
+
+    function changeImage(id, sprite, artwork, tcg) {
+      const img = document.getElementById(`img-${id}`);
+      const version = document.getElementById(`select-${id}`).value;
+      if (version === 'sprite') img.src = sprite;
+      else if (version === 'artwork') img.src = artwork;
+      else img.src = tcg;
+    }
+
+    function filterCards() {
+      const term = document.getElementById('searchBox').value.toLowerCase();
+      document.querySelectorAll('.pokemon-card').forEach(card => {
+        card.style.display = card.dataset.name.includes(term) ? '' : 'none';
+      });
+    }
+
+    function sortCards() {
+      const by = document.getElementById('sortOption').value;
+      const cards = Array.from(document.querySelectorAll('.pokemon-card'));
+      const sorted = cards.sort((a, b) => {
+        return by === 'name'
+          ? a.dataset.name.localeCompare(b.dataset.name)
+          : Number(a.dataset.id) - Number(b.dataset.id);
+      });
+      sorted.forEach(card => grid.appendChild(card));
+    }
+
+    function exportCollection() {
+      const collected = [];
+      for (let i = 1; i <= 151; i++) {
+        if (document.getElementById(`pokemon-${i}`).checked) {
+          collected.push(i);
+        }
+      }
+      const blob = new Blob([JSON.stringify(collected, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "pokemon_collection.json";
+      a.click();
+    }
+
+    loadPokemon();
   </script>
 </body>
 </html>
