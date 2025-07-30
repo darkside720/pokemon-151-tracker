@@ -1,3 +1,4 @@
+<!-- Save this as index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,6 +30,12 @@
     .controls input, .controls select, .controls button {
       padding: 0.5rem;
       font-size: 1rem;
+    }
+    .section-title {
+      margin: 2rem 0 1rem;
+      font-size: 1.8rem;
+      text-align: center;
+      color: #111;
     }
     .pokemon-grid {
       display: grid;
@@ -71,24 +78,31 @@
     <button onclick="exportCollection()">Export Collection</button>
   </div>
 
+  <h2 class="section-title">🔥 Top 20 Chase Cards</h2>
+  <div class="pokemon-grid" id="chaseGrid"></div>
+
+  <h2 class="section-title">📘 Full Collection</h2>
   <div class="pokemon-grid" id="pokemonGrid"></div>
 
   <script>
     const grid = document.getElementById('pokemonGrid');
+    const chaseGrid = document.getElementById('chaseGrid');
     const placeholderImage = "https://via.placeholder.com/100?text=Missing";
-    const collectionState = {};
+
+    // You can adjust this list based on rarity/market
+    const chaseList = [1, 3, 6, 9, 15, 18, 25, 39, 65, 68, 94, 131, 132, 133, 134, 135, 136, 143, 144, 151];
 
     async function loadPokemon() {
       for (let i = 1; i <= 151; i++) {
-        const res = await fetch(https://pokeapi.co/api/v2/pokemon/${i});
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${i}`);
         const data = await res.json();
         const name = data.name.charAt(0).toUpperCase() + data.name.slice(1);
         const sprite = data.sprites.front_default || placeholderImage;
-        const artwork = https://img.pokemondb.net/artwork/large/${data.name}.jpg;
-        
+        const artwork = `https://img.pokemondb.net/artwork/large/${data.name}.jpg`;
+
         let tcg = "";
         try {
-          const tcgRes = await fetch(https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:${i});
+          const tcgRes = await fetch(`https://api.pokemontcg.io/v2/cards?q=nationalPokedexNumbers:${i}`);
           const tcgData = await tcgRes.json();
           tcg = tcgData.data?.[0]?.images?.large || artwork;
         } catch (err) {
@@ -99,7 +113,7 @@
         card.className = 'pokemon-card';
         card.dataset.id = i;
         card.dataset.name = name.toLowerCase();
-        card.innerHTML = 
+        card.innerHTML = `
           <h3>#${String(i).padStart(3, '0')} ${name}</h3>
           <img src="${tcg}" id="img-${i}" alt="${name}" />
           <div class="version-select">
@@ -113,21 +127,26 @@
             <input type="checkbox" id="pokemon-${i}" onchange="toggleCollected(${i})">
             Collected
           </label>
-        ;
+        `;
+
+        if (chaseList.includes(i)) {
+          chaseGrid.appendChild(card.cloneNode(true));
+        }
+
         grid.appendChild(card);
       }
       restoreState();
     }
 
     function toggleCollected(id) {
-      const key = pokemon-${id};
+      const key = `pokemon-${id}`;
       const checked = document.getElementById(key).checked;
       localStorage.setItem(key, checked);
     }
 
     function restoreState() {
       for (let i = 1; i <= 151; i++) {
-        const key = pokemon-${i};
+        const key = `pokemon-${i}`;
         const stored = localStorage.getItem(key);
         if (stored === 'true') {
           const checkbox = document.getElementById(key);
@@ -137,8 +156,8 @@
     }
 
     function changeImage(id, sprite, artwork, tcg) {
-      const img = document.getElementById(img-${id});
-      const version = document.getElementById(select-${id}).value;
+      const img = document.getElementById(`img-${id}`);
+      const version = document.getElementById(`select-${id}`).value;
       if (version === 'sprite') img.src = sprite;
       else if (version === 'artwork') img.src = artwork;
       else img.src = tcg;
@@ -153,7 +172,7 @@
 
     function sortCards() {
       const by = document.getElementById('sortOption').value;
-      const cards = Array.from(document.querySelectorAll('.pokemon-card'));
+      const cards = Array.from(grid.children);
       const sorted = cards.sort((a, b) => {
         return by === 'name'
           ? a.dataset.name.localeCompare(b.dataset.name)
@@ -165,7 +184,7 @@
     function exportCollection() {
       const collected = [];
       for (let i = 1; i <= 151; i++) {
-        if (document.getElementById(pokemon-${i}).checked) {
+        if (document.getElementById(`pokemon-${i}`).checked) {
           collected.push(i);
         }
       }
